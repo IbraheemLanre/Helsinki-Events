@@ -1,5 +1,5 @@
 (function () {
-  if (!navigation.geolocation) {
+  if (!navigator.geolocation) {
     return;
   }
 
