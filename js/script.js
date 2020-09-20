@@ -1,13 +1,13 @@
 (function () {
-  var lat = null,
-    lon = null;
-  navigator.geolocation.getCurrentPosition(function (position) {
-    console.log(position.coords.latitude);
-    console.log(position.coords.longitude);
+  if (!navigation.geolocation) {
+    return;
+  }
 
-    lat = position.coords.latitude;
-    lon = position.coords.longitude;
+  //ask for user permission to retrieve estimated coordinates accoriding to ISP provider
+  // if user allows us to fecth their coordinates (lon, lat) then invoke the performTasks function
+  navigator.geolocation.getCurrentPosition(performTasks);
 
+  function performTasks(position) {
     // Define a variable holding SVG mark-up that defines an icon image:
     var svgMarkup =
       '<svg width="24" height="24" ' +
@@ -17,15 +17,16 @@
       'font-family="Arial" font-weight="bold" text-anchor="middle" ' +
       'fill="white">H</text></svg>';
 
+    var lat = position.coords.latitude,
+      lon = position.coords.longitude;
+
     // Create an icon, an object holding the latitude and longitude, and a marker:
     var icon = new H.map.Icon(svgMarkup),
       coords = { lat: lat, lng: lon },
-      marker = new H.map.Marker(coords, { icon: icon });
-
-    //Initialize the map
-    var platform = new H.service.Platform({
-      apikey: "aal9_7dNwgh-ZN7ixn1meICjfQxgXUxAxTh2EBcFZe8",
-    });
+      userLocationMarker = new H.map.Marker(coords, { icon: icon }),
+      platform = new H.service.Platform({
+        apikey: "aal9_7dNwgh-ZN7ixn1meICjfQxgXUxAxTh2EBcFZe8",
+      });
 
     // Obtain the default map types from the platform object:
     var defaultLayers = platform.createDefaultLayers();
@@ -40,24 +41,28 @@
       }
     );
 
+    //mark user location on the map
+    map.addObject(userLocationMarker);
+
     fetch(`https://api.hel.fi/linkedevents/v1/place/?format=json`)
       .then(function (resp) {
         return resp.json();
       })
-      .then(function (json) {
-        json.data.forEach(function (event) {
-          var _coordinates = {
-            lat: event.position.coordinates[1],
-            lng: event.position.coordinates[0],
-          };
-
-          var _marker = new H.map.Marker(_coordinates, { icon: icon });
-          map.addObject(_marker);
-        });
-      })
+      .then(handleJSON)
       .catch(function (err) {
         console.log(err);
       });
-    map.addObject(marker);
-  });
+
+    function handleJSON(json) {
+      json.data.forEach(function (event) {
+        var _coordinates = {
+          lat: event.position.coordinates[1],
+          lng: event.position.coordinates[0],
+        };
+
+        var _marker = new H.map.Marker(_coordinates, { icon: icon });
+        map.addObject(_marker);
+      });
+    }
+  }
 })();
